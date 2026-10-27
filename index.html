@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disposizione Banchi Classe Pro - Assistente Docenti</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome per le icone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+            .desk-grid-container { page-break-inside: avoid; }
+            .card-shadow { box-shadow: none !important; border: 1px solid #ccc; }
+        }
+        .desk-card {
+            transition: all 0.2s ease;
+        }
+        .desk-card.dragging {
+            opacity: 0.4;
+            transform: scale(0.95);
+        }
+        .desk-card.drag-over {
+            border-color: #0284c7 !important;
+            background-color: #e0f2fe !important;
+            transform: scale(1.02);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-600 text-white p-2 rounded-lg shadow-sm">
+                    <i class="fa-solid fa-chair text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 leading-tight">ClassDesk Pro</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">Ottimizzatore Layout Banchi Scolastici con Livello Pericolosità</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="caricaDatiEsempio()" class="px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                    <span>Dati di Esempio</span>
+                </button>
+                <button onclick="window.print()" class="px-3 py-1.5 text-xs sm:text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-print"></i>
+                    <span class="hidden sm:inline">Stampa / Salva PDF</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT PANEL: Configuration & Student List (Cols 1-4 on LG) -->
+        <div class="lg:col-span-4 space-y-6 no-print">
+
+            <!-- TAB SELECTION -->
+            <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex text-sm font-medium">
+                <button id="tab-btn-students" onclick="switchTab('students')" class="flex-1 py-2 text-center rounded-lg bg-brand-600 text-white shadow-sm transition-all">
+                    <i class="fa-solid fa-users mr-1.5"></i>Studenti (<span id="count-studenti">0</span>)
+                </button>
+                <button id="tab-btn-layout" onclick="switchTab('layout')" class="flex-1 py-2 text-center rounded-lg text-slate-600 hover:text-slate-900 transition-all">
+                    <i class="fa-solid fa-sliders mr-1.5"></i>Aula & Regole
+                </button>
+            </div>
+
+            <!-- TAB CONTENT 1: STUDENTS MANAGEMENT -->
+            <div id="tab-content-students" class="space-y-4">
+                <!-- Form Aggiunta Studente -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-brand-600"></i> Aggiungi Studente
+                    </h2>
+                    <form id="form-studente" onsubmit="aggiungiStudente(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Nome e Cognome *</label>
+                            <input type="text" id="input-nome" required placeholder="Es. Marco Rossi" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Genere *</label>
+                                <select id="input-sesso" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                                    <option value="M">Maschio (M)</option>
+                                    <option value="F">Femmina (F)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Classe Origine</label>
+                                <input type="text" id="input-provenienza" placeholder="Es. 3A, 2B..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                        </div>
+
+                        <!-- NUOVO CAMPO: LIVORNO PERICOLOSITA' / DISTURBO -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-600">Livello Pericolosità / Disturbo</label>
+                                <span id="label-danger-val" class="text-xs font-bold text-emerald-600">1 - Tranquillo</span>
+                            </div>
+                            <input type="range" id="input-pericolosita" min="1" max="5" value="1" oninput="aggiornaLabelPericolosita(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                            <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                                <span>1 (Basso)</span>
+                                <span>3 (Medio)</span>
+                                <span>5 (Critico)</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-1">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="input-dsa" class="sr-only peer">
+                                <div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                                <span class="ml-2 text-xs font-semibold text-slate-700">Prima Fila Obbligatoria (DSA/BES/Vista)</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus text-xs"></i> Aggiungi alla Lista
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Elenco Studenti Inseriti -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Elenco Studenti</h2>
+                        <button onclick="svuotaStudenti()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+                            <i class="fa-solid fa-trash mr-1"></i>Svuota tutti
+                        </button>
+                    </div>
+
+                    <div id="lista-studenti" class="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                        <!-- Generato via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 2: AULA & REGOLE -->
+            <div id="tab-content-layout" class="space-y-4 hidden">
+                <!-- Layout Aula -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-table-cells text-brand-600"></i> Disposizione Banchi
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Righe Banchi</label>
+                                <input type="number" id="cfg-righe" min="1" max="8" value="4" onchange="aggiornaConfigurazioneAula()" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Colonne Banchi</label>
+                                <input type="number" id="cfg-colonne" min="1" max="8" value="6" onchange="aggiornaConfigurazioneAula()" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tipologia di Struttura</label>
+                            <select id="cfg-tipo-banchi" onchange="aggiornaConfigurazioneAula()" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none">
+                                <option value="coppie">Banchi Doppi (A coppie con corridoi)</option>
+                                <option value="singoli">Banchi Singoli Spaziati</option>
+                                <option value="isole">Isole / Gruppi da 4 Banchi</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vincoli e Preferenze -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-brand-600"></i> Regole di Ottimizzazione
+                    </h2>
+                    <div class="space-y-2.5">
+                        <label class="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-50 rounded-lg">
+                            <span class="text-xs font-medium text-slate-700">Separa "Pericolosi / Vivaci" (Livello 4-5)</span>
+                            <input type="checkbox" id="rule-separa-pericolosi" checked class="rounded text-brand-600 focus:ring-brand-500 h-4 w-4">
+                        </label>
+
+                        <label class="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-50 rounded-lg">
+                            <span class="text-xs font-medium text-slate-700">Privilegia DSA/BES in prima fila</span>
+                            <input type="checkbox" id="rule-dsa-front" checked class="rounded text-brand-600 focus:ring-brand-500 h-4 w-4">
+                        </label>
+
+                        <label class="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-50 rounded-lg">
+                            <span class="text-xs font-medium text-slate-700">Alterna Sesso (M/F) vicini</span>
+                            <input type="checkbox" id="rule-alterna-sesso" checked class="rounded text-brand-600 focus:ring-brand-500 h-4 w-4">
+                        </label>
+
+                        <label class="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-50 rounded-lg">
+                            <span class="text-xs font-medium text-slate-700">Separa provenienti da stessa classe</span>
+                            <input type="checkbox" id="rule-separa-provenienza" checked class="rounded text-brand-600 focus:ring-brand-500 h-4 w-4">
+                        </label>
+                    </div>
+
+                    <!-- Coppie Specifiche da Separare o Unire -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <label class="block text-xs font-bold text-slate-700 mb-2">Relazioni Specifiche tra Studenti:</label>
+                        <div class="flex gap-2 mb-2">
+                            <select id="sep-stud1" class="w-1/2 text-xs border border-slate-300 rounded-lg p-1.5 outline-none"></select>
+                            <select id="sep-stud2" class="w-1/2 text-xs border border-slate-300 rounded-lg p-1.5 outline-none"></select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="aggiungiRegolaRelazione('SEPARA')" class="py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-medium transition-colors border border-rose-200">
+                                <i class="fa-solid fa-ban mr-1"></i> Separa I Due
+                            </button>
+                            <button onclick="aggiungiRegolaRelazione('UNISCI')" class="py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium transition-colors border border-emerald-200">
+                                <i class="fa-solid fa-handshake mr-1"></i> Metti Vicini
+                            </button>
+                        </div>
+                        <div id="lista-relazioni" class="mt-2 space-y-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTONE GENERA DISPOSIZIONE -->
+            <button onclick="generaDisposizioneOttimizzata()" class="w-full py-3 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                <span>Genera Disposizione Ottimale</span>
+            </button>
+        </div>
+
+        <!-- RIGHT PANEL: Classroom Grid Preview (Cols 5-12 on LG) -->
+        <div class="lg:col-span-8 space-y-4">
+            
+            <!-- Information & Legend Bar -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3 no-print">
+                <div class="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600">
+                    <span class="font-bold">Legenda Pericolosità:</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> 1-2 Tranquillo</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> 3 Vivace</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> 4-5 Disturbante</span>
+                    <span class="flex items-center gap-1 ml-2"><i class="fa-solid fa-star text-amber-500"></i> DSA/BES</span>
+                </div>
+                <div id="score-badge" class="hidden px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center gap-1">
+                    <i class="fa-solid fa-chart-line"></i> Score Aula: <span id="score-val">100%</span>
+                </div>
+            </div>
+
+            <!-- PRINT HEADER (Solo in stampa) -->
+            <div class="hidden print-only mb-6">
+                <div class="border-b pb-3 mb-3 flex justify-between items-end">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Mappa Banchi della Classe</h1>
+                        <p class="text-sm text-slate-600">Generato con ClassDesk Pro</p>
+                    </div>
+                    <div class="text-right text-xs text-slate-500">
+                        <p>Data: __________________</p>
+                        <p>Classe: __________________</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CLASSROOM MAP CONTAINER -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 card-shadow flex flex-col items-center">
+                
+                <!-- CATTEDRA / LAVAGNA -->
+                <div class="w-full max-w-md bg-slate-800 text-white py-2 px-6 rounded-lg text-center font-bold text-sm shadow-sm mb-8 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user"></i> CATTEDRA / LAVAGNA
+                </div>
+
+                <!-- GRID CONTAINER -->
+                <div id="aula-grid" class="w-full overflow-x-auto flex justify-center p-2">
+                    <!-- Banchi inseriti dinamicamente via JS -->
+                </div>
+
+                <!-- STATS & REPORT DEGLI AVVISI -->
+                <div id="alerta-report" class="w-full mt-6 text-xs text-slate-600 hidden no-print border-t pt-4">
+                    <p class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> Note sull'ottimizzazione:</p>
+                    <ul id="alerta-list" class="list-disc pl-5 space-y-0.5 text-slate-500"></ul>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal per Messaggi di Feedback -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        <i id="toast-icon" class="fa-solid fa-circle-info text-brand-500"></i>
+        <span id="toast-message" class="text-sm font-medium">Messaggio di notifica</span>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Stato dell'applicazione
+        let studenti = [];
+        let relazioni = []; // Array di regole: { type: 'SEPARA' | 'UNISCI', id1, id2 }
+        let righe = 4;
+        let colonne = 6;
+        let tipoBanchi = 'coppie';
+        let grigliaBanchi = []; // Matrice [riga][colonna] -> studenteObj oppure null oppure {disabled: true}
+
+        const DANGER_COLORS = {
+            1: { bg: 'border-l-4 border-l-emerald-500', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500', label: '1 - Basso' },
+            2: { bg: 'border-l-4 border-l-teal-500', badge: 'bg-teal-100 text-teal-800', dot: 'bg-teal-500', label: '2 - Moderato' },
+            3: { bg: 'border-l-4 border-l-amber-400', badge: 'bg-amber-100 text-amber-800', dot: 'bg-amber-400', label: '3 - Vivace' },
+            4: { bg: 'border-l-4 border-l-orange-500', badge: 'bg-orange-100 text-orange-800', dot: 'bg-orange-500', label: '4 - Alto' },
+            5: { bg: 'border-l-4 border-l-rose-600', badge: 'bg-rose-100 text-rose-800', dot: 'bg-rose-600', label: '5 - Critico' }
+        };
+
+        window.onload = function() {
+            aggiornaConfigurazioneAula();
+            renderStudenti();
+        };
+
+        function switchTab(tab) {
+            const btnStudents = document.getElementById('tab-btn-students');
+            const btnLayout = document.getElementById('tab-btn-layout');
+            const contentStudents = document.getElementById('tab-content-students');
+            const contentLayout = document.getElementById('tab-content-layout');
+
+            if(tab === 'students') {
+                btnStudents.className = "flex-1 py-2 text-center rounded-lg bg-brand-600 text-white shadow-sm transition-all";
+                btnLayout.className = "flex-1 py-2 text-center rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                contentStudents.classList.remove('hidden');
+                contentLayout.classList.add('hidden');
+            } else {
+                btnLayout.className = "flex-1 py-2 text-center rounded-lg bg-brand-600 text-white shadow-sm transition-all";
+                btnStudents.className = "flex-1 py-2 text-center rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                contentLayout.classList.remove('hidden');
+                contentStudents.classList.add('hidden');
+            }
+        }
+
+        function aggiornaLabelPericolosita(val) {
+            const label = document.getElementById('label-danger-val');
+            const info = DANGER_COLORS[val];
+            label.innerText = info.label;
+            label.className = `text-xs font-bold ${val >= 4 ? 'text-rose-600' : (val == 3 ? 'text-amber-600' : 'text-emerald-600')}`;
+        }
+
+        function aggiungiStudente(e) {
+            e.preventDefault();
+            const nomeInput = document.getElementById('input-nome');
+            const sessoInput = document.getElementById('input-sesso');
+            const provInput = document.getElementById('input-provenienza');
+            const dsaInput = document.getElementById('input-dsa');
+            const dangerInput = document.getElementById('input-pericolosita');
+
+            const nuovoStudente = {
+                id: Date.now() + Math.random().toString(36).substr(2, 5),
+                nome: nomeInput.value.trim(),
+                sesso: sessoInput.value,
+                provenienza: provInput.value.trim().toUpperCase() || 'N/A',
+                dsa: dsaInput.checked,
+                pericolosita: parseInt(dangerInput.value) || 1
+            };
+
+            studenti.push(nuovoStudente);
+            
+            nomeInput.value = '';
+            dsaInput.checked = false;
+            dangerInput.value = 1;
+            aggiornaLabelPericolosita(1);
+            
+            renderStudenti();
+            aggiornaSelectRelazioni();
+            showToast("Studente aggiunto con successo!");
+        }
+
+        function eliminaStudente(id) {
+            studenti = studenti.filter(s => s.id !== id);
+            relazioni = relazioni.filter(r => r.id1 !== id && r.id2 !== id);
+            
+            for(let r=0; r<righe; r++) {
+                for(let c=0; c<colonne; c++) {
+                    if(grigliaBanchi[r] && grigliaBanchi[r][c] && grigliaBanchi[r][c].id === id) {
+                        grigliaBanchi[r][c] = null;
+                    }
+                }
+            }
+
+            renderStudenti();
+            aggiornaSelectRelazioni();
+            renderRelazioni();
+            renderGrigliaAula();
+        }
+
+        function svuotaStudenti() {
+            if(confirm("Sei sicuro di voler cancellare tutti gli studenti inseriti?")) {
+                studenti = [];
+                relazioni = [];
+                resetGriglia();
+                renderStudenti();
+                aggiornaSelectRelazioni();
+                renderRelazioni();
+                renderGrigliaAula();
+                showToast("Lista studenti svuotata");
+            }
+        }
+
+        function renderStudenti() {
+            const listaEl = document.getElementById('lista-studenti');
+            document.getElementById('count-studenti').innerText = studenti.length;
+
+            if (studenti.length === 0) {
+                listaEl.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        Nessun studente inserito.<br>Aggiungine uno o usa "Dati di Esempio".
+                    </div>`;
+                return;
+            }
+
+            listaEl.innerHTML = studenti.map(s => {
+                const dangerInfo = DANGER_COLORS[s.pericolosita];
+                return `
+                <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs ${dangerInfo.bg}">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.sesso === 'M' ? 'bg-blue-500' : 'bg-pink-500'}" title="Genere: ${s.sesso}"></span>
+                        <span class="font-bold text-slate-800 truncate">${s.nome}</span>
+                        <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-semibold">${s.provenienza}</span>
+                        ${s.dsa ? '<span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold"><i class="fa-solid fa-star"></i> 1ª Fila</span>' : ''}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-1.5 py-0.5 text-[10px] font-bold rounded ${dangerInfo.badge}">P${s.pericolosita}</span>
+                        <button onclick="eliminaStudente('${s.id}')" class="text-slate-400 hover:text-rose-600 p-1 transition-colors">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            `;}).join('');
+        }
+
+        function aggiornaSelectRelazioni() {
+            const sel1 = document.getElementById('sep-stud1');
+            const sel2 = document.getElementById('sep-stud2');
+            const options = studenti.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+            sel1.innerHTML = options;
+            sel2.innerHTML = options;
+        }
+
+        function aggiungiRegolaRelazione(tipo) {
+            const id1 = document.getElementById('sep-stud1').value;
+            const id2 = document.getElementById('sep-stud2').value;
+
+            if(!id1 || !id2 || id1 === id2) {
+                showToast("Seleziona due studenti differenti!", true);
+                return;
+            }
+
+            const esiste = relazioni.some(r => (r.id1 === id1 && r.id2 === id2) || (r.id1 === id2 && r.id2 === id1));
+            if(esiste) {
+                showToast("Una regola per questi studenti esiste già!", true);
+                return;
+            }
+
+            relazioni.push({ type: tipo, id1, id2 });
+            renderRelazioni();
+            showToast(`Regola ${tipo === 'SEPARA' ? 'separazione' : 'unione'} aggiunta`);
+        }
+
+        function rimuoviRelazione(index) {
+            relazioni.splice(index, 1);
+            renderRelazioni();
+        }
+
+        function renderRelazioni() {
+            const container = document.getElementById('lista-relazioni');
+            container.innerHTML = relazioni.map((r, idx) => {
+                const st1 = studenti.find(s => s.id === r.id1);
+                const st2 = studenti.find(s => s.id === r.id2);
+                if(!st1 || !st2) return '';
+                const isSep = r.type === 'SEPARA';
+                return `
+                    <div class="flex items-center justify-between text-[11px] p-1.5 rounded-md ${isSep ? 'bg-rose-50 border border-rose-200 text-rose-800' : 'bg-emerald-50 border border-emerald-200 text-emerald-800'}">
+                        <span><i class="fa-solid ${isSep ? 'fa-ban text-rose-500' : 'fa-handshake text-emerald-500'} mr-1"></i>${st1.nome} ${isSep ? '≠' : '↔'} ${st2.nome}</span>
+                        <button onclick="rimuoviRelazione(${idx})" class="hover:opacity-80"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function aggiornaConfigurazioneAula() {
+            righe = parseInt(document.getElementById('cfg-righe').value) || 4;
+            colonne = parseInt(document.getElementById('cfg-colonne').value) || 6;
+            tipoBanchi = document.getElementById('cfg-tipo-banchi').value;
+
+            resetGriglia();
+            renderGrigliaAula();
+        }
+
+        function resetGriglia() {
+            grigliaBanchi = Array(righe).fill(null).map(() => Array(colonne).fill(null));
+        }
+
+        function toggleBancoAttivo(r, c) {
+            if (grigliaBanchi[r][c] && grigliaBanchi[r][c].disabled) {
+                grigliaBanchi[r][c] = null;
+            } else if (grigliaBanchi[r][c] === null) {
+                grigliaBanchi[r][c] = { disabled: true };
+            }
+            renderGrigliaAula();
+        }
+
+        function renderGrigliaAula() {
+            const container = document.getElementById('aula-grid');
+            let gridHtml = `<div class="grid gap-3" style="grid-template-columns: repeat(${colonne}, minmax(105px, 125px));">`;
+
+            for (let r = 0; r < righe; r++) {
+                for (let c = 0; c < colonne; c++) {
+                    const item = grigliaBanchi[r][c];
+                    const isDisabled = item && item.disabled;
+                    const student = (item && !item.disabled) ? item : null;
+
+                    let extraMarginClass = "";
+                    if (tipoBanchi === 'coppie' && c % 2 === 1 && c < colonne - 1) {
+                        extraMarginClass = "mr-6";
+                    } else if (tipoBanchi === 'isole' && c % 2 === 1 && c < colonne - 1) {
+                        extraMarginClass = "mr-4";
+                    }
+
+                    if (isDisabled) {
+                        gridHtml += `
+                            <div onclick="toggleBancoAttivo(${r}, ${c})" 
+                                 class="h-24 rounded-xl border-2 border-dashed border-slate-200 bg-slate-100/50 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-slate-300 transition-all ${extraMarginClass}">
+                                <i class="fa-solid fa-ban text-xs mb-1"></i>
+                                <span class="text-[10px] font-semibold">Non attivo</span>
+                            </div>`;
+                    } else if (student) {
+                        const dangerInfo = DANGER_COLORS[student.pericolosita || 1];
+                        const genderColor = student.sesso === 'M' ? 'text-blue-500' : 'text-pink-500';
+
+                        gridHtml += `
+                            <div draggable="true" 
+                                 ondragstart="handleDragStart(event, ${r}, ${c})" 
+                                 ondragover="handleDragOver(event)" 
+                                 ondragleave="handleDragLeave(event)" 
+                                 ondrop="handleDrop(event, ${r}, ${c})"
+                                 class="desk-card h-24 p-2.5 rounded-xl border-2 border-slate-200 bg-white shadow-sm hover:shadow-md flex flex-col justify-between cursor-grab active:cursor-grabbing relative overflow-hidden ${dangerInfo.bg} ${extraMarginClass}">
+                                
+                                <div class="flex items-center justify-between text-[10px]">
+                                    <span class="font-bold px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">${student.provenienza}</span>
+                                    <span class="font-bold px-1 rounded ${dangerInfo.badge}" title="Pericolosità P${student.pericolosita}">P${student.pericolosita}</span>
+                                </div>
+
+                                <div class="my-auto text-center">
+                                    <p class="font-bold text-xs text-slate-800 leading-tight truncate">
+                                        <i class="fa-solid fa-user ${genderColor} mr-1 text-[10px]"></i>${student.nome}
+                                    </p>
+                                    ${student.dsa ? '<span class="text-[9px] font-bold text-amber-600 inline-block mt-0.5"><i class="fa-solid fa-star"></i> 1ª Fila</span>' : ''}
+                                </div>
+
+                                <div class="flex items-center justify-between text-[9px] text-slate-400 border-t border-slate-100 pt-1">
+                                    <span>Fila ${r+1}</span>
+                                    <button onclick="rimuoviDaBanco(${r}, ${c})" class="hover:text-rose-500"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>`;
+                    } else {
+                        gridHtml += `
+                            <div ondragover="handleDragOver(event)" 
+                                 ondragleave="handleDragLeave(event)" 
+                                 ondrop="handleDrop(event, ${r}, ${c})"
+                                 class="desk-card h-24 p-2 rounded-xl border-2 border-slate-200 bg-slate-50/80 hover:bg-slate-100 flex flex-col items-center justify-center text-slate-400 transition-all ${extraMarginClass}">
+                                <i class="fa-solid fa-chair text-slate-300 text-lg mb-1"></i>
+                                <span class="text-[10px] text-slate-400 font-medium">Vuoto</span>
+                                <button onclick="toggleBancoAttivo(${r}, ${c})" class="text-[9px] text-slate-400 hover:text-slate-600 mt-1 underline">Disattiva</button>
+                            </div>`;
+                    }
+                }
+            }
+
+            gridHtml += `</div>`;
+            container.innerHTML = gridHtml;
+        }
+
+        function rimuoviDaBanco(r, c) {
+            grigliaBanchi[r][c] = null;
+            renderGrigliaAula();
+        }
+
+        // DRAG AND DROP HANDLERS
+        let dragSource = null;
+
+        function handleDragStart(e, r, c) {
+            dragSource = { r, c };
+            e.dataTransfer.setData('text/plain', JSON.stringify({ r, c }));
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, targetR, targetC) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            if (!dragSource) return;
+
+            const sourceR = dragSource.r;
+            const sourceC = dragSource.c;
+            const temp = grigliaBanchi[targetR][targetC];
+            if (temp && temp.disabled) return;
+
+            grigliaBanchi[targetR][targetC] = grigliaBanchi[sourceR][sourceC];
+            grigliaBanchi[sourceR][sourceC] = temp;
+
+            dragSource = null;
+            renderGrigliaAula();
+            calcolaScoreAula();
+            showToast("Spostamento effettuato");
+        }
+
+        // ALGORITMO DI OTTIMIZZAZIONE INTELLIGENTE
+        function generaDisposizioneOttimizzata() {
+            if (studenti.length === 0) {
+                showToast("Inserisci prima gli studenti!", true);
+                return;
+            }
+
+            let postiDisponibili = 0;
+            for(let r=0; r<righe; r++) {
+                for(let c=0; c<colonne; c++) {
+                    if(!grigliaBanchi[r][c] || !grigliaBanchi[r][c].disabled) postiDisponibili++;
+                }
+            }
+
+            if (studenti.length > postiDisponibili) {
+                showToast(`Studenti (${studenti.length}) > Posti disponibili (${postiDisponibili})! Aumenta la griglia.`, true);
+                return;
+            }
+
+            const ruleSeparaPericolosi = document.getElementById('rule-separa-pericolosi').checked;
+            const ruleAlternaSesso = document.getElementById('rule-alterna-sesso').checked;
+            const ruleSeparaProv = document.getElementById('rule-separa-provenienza').checked;
+            const ruleDsaFront = document.getElementById('rule-dsa-front').checked;
+
+            let miglioreGriglia = null;
+            let migliorePunteggio = -Infinity;
+
+            const ITERAZIONI = 3500;
+
+            for (let iter = 0; iter < ITERAZIONI; iter++) {
+                let tempGriglia = Array(righe).fill(null).map(() => Array(colonne).fill(null));
+                
+                for(let r=0; r<righe; r++) {
+                    for(let c=0; c<colonne; c++) {
+                        if(grigliaBanchi[r][c] && grigliaBanchi[r][c].disabled) {
+                            tempGriglia[r][c] = { disabled: true };
+                        }
+                    }
+                }
+
+                let studentiShuffled = [...studenti].sort(() => Math.random() - 0.5);
+
+                if (ruleDsaFront) {
+                    const dsaStudenti = studentiShuffled.filter(s => s.dsa);
+                    const normaliStudenti = studentiShuffled.filter(s => !s.dsa);
+                    studentiShuffled = [...dsaStudenti, ...normaliStudenti];
+                }
+
+                let indexStudenti = 0;
+                for (let r = 0; r < righe; r++) {
+                    for (let c = 0; c < colonne; c++) {
+                        if (!tempGriglia[r][c] && indexStudenti < studentiShuffled.length) {
+                            tempGriglia[r][c] = studentiShuffled[indexStudenti++];
+                        }
+                    }
+                }
+
+                let punteggio = 0;
+
+                for (let r = 0; r < righe; r++) {
+                    for (let c = 0; c < colonne; c++) {
+                        const st = tempGriglia[r][c];
+                        if (!st || st.disabled) continue;
+
+                        // DSA in Prima fila
+                        if (ruleDsaFront && st.dsa) {
+                            if (r === 0) punteggio += 80;
+                            else if (r === 1) punteggio += 30;
+                            else punteggio -= 50 * r;
+                        }
+
+                        // Trova vicini (orizzontali, verticali e diagonali)
+                        const vicini = getVicini(tempGriglia, r, c);
+
+                        for (let v of vicini) {
+                            // REGOLA PERICOLOSITA': Evita accumulo vicini ad alto disturbo (4-5)
+                            if (ruleSeparaPericolosi) {
+                                const stPerf = st.pericolosita || 1;
+                                const vPerf = v.pericolosita || 1;
+                                
+                                if (stPerf >= 4 && vPerf >= 4) {
+                                    punteggio -= 250; // Penalità gravissima per due "pericolosi" vicini
+                                } else if (stPerf >= 4 && vPerf === 3) {
+                                    punteggio -= 80;
+                                } else if (stPerf >= 4 && vPerf <= 2) {
+                                    punteggio += 40; // Bonus: affianca un turbolento a un tranquillissimo
+                                }
+                            }
+
+                            // Sesso alternato
+                            if (ruleAlternaSesso) {
+                                if (st.sesso !== v.sesso) punteggio += 15;
+                                else punteggio -= 10;
+                            }
+
+                            // Provenienza diversa
+                            if (ruleSeparaProv && st.provenienza !== 'N/A') {
+                                if (st.provenienza !== v.provenienza) punteggio += 20;
+                                else punteggio -= 35;
+                            }
+
+                            // Regole Relazioni Personalizzate
+                            for (let rel of relazioni) {
+                                if ((st.id === rel.id1 && v.id === rel.id2) || (st.id === rel.id2 && v.id === rel.id1)) {
+                                    if (rel.type === 'SEPARA') punteggio -= 500;
+                                    if (rel.type === 'UNISCI') punteggio += 300;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (punteggio > migliorePunteggio) {
+                    migliorePunteggio = punteggio;
+                    miglioreGriglia = tempGriglia;
+                }
+            }
+
+            grigliaBanchi = miglioreGriglia;
+            renderGrigliaAula();
+            calcolaScoreAula();
+            showToast("Disposizione ottima generata!");
+        }
+
+        function getVicini(griglia, r, c) {
+            const vicini = [];
+            const coords = [
+                [r, c-1], [r, c+1], // Orizzontali
+                [r-1, c], [r+1, c], // Verticali (davanti/dietro)
+                [r-1, c-1], [r-1, c+1], [r+1, c-1], [r+1, c+1] // Diagonali
+            ];
+            for (let [vr, vc] of coords) {
+                if (vr >= 0 && vr < righe && vc >= 0 && vc < colonne) {
+                    if (griglia[vr][vc] && !griglia[vr][vc].disabled) {
+                        vicini.push(griglia[vr][vc]);
+                    }
+                }
+            }
+            return vicini;
+        }
+
+        function calcolaScoreAula() {
+            let penalita = 0;
+            let avvisi = [];
+
+            for (let r = 0; r < righe; r++) {
+                for (let c = 0; c < colonne; c++) {
+                    const st = grigliaBanchi[r][c];
+                    if (!st || st.disabled) continue;
+
+                    if (st.dsa && r > 0) {
+                        penalita += 20;
+                        avvisi.push(`<b>${st.nome}</b> (DSA/BES) non è in prima fila.`);
+                    }
+
+                    const vicini = getVicini(grigliaBanchi, r, c);
+                    for (let v of vicini) {
+                        if ((st.pericolosita || 1) >= 4 && (v.pericolosita || 1) >= 4) {
+                            penalita += 30;
+                            avvisi.push(`Studenti vivaci <b>${st.nome}</b> e <b>${v.nome}</b> sono vicini.`);
+                        }
+                    }
+                }
+            }
+
+            // Rimuovi duplicati dagli avvisi
+            avvisi = [...new Set(avvisi)];
+
+            const scoreBadge = document.getElementById('score-badge');
+            const scoreVal = document.getElementById('score-val');
+            const reportEl = document.getElementById('alerta-report');
+            const listEl = document.getElementById('alerta-list');
+
+            const scoreFinal = Math.max(0, 100 - penalita);
+            scoreVal.innerText = `${scoreFinal}%`;
+            scoreBadge.classList.remove('hidden');
+
+            if (avvisi.length > 0) {
+                listEl.innerHTML = avvisi.map(a => `<li>${a}</li>`).join('');
+                reportEl.classList.remove('hidden');
+            } else {
+                reportEl.classList.add('hidden');
+            }
+        }
+
+        // CARICA DATI DI PROVA
+        function caricaDatiEsempio() {
+            studenti = [
+                { id: '1', nome: 'Marco Rossi', sesso: 'M', provenienza: '3A', dsa: true, pericolosita: 2 },
+                { id: '2', nome: 'Sofia Bianchi', sesso: 'F', provenienza: '3B', dsa: false, pericolosita: 5 },
+                { id: '3', nome: 'Luca Verdi', sesso: 'M', provenienza: '3A', dsa: false, pericolosita: 4 },
+                { id: '4', nome: 'Giulia Russo', sesso: 'F', provenienza: '3C', dsa: false, pericolosita: 1 },
+                { id: '5', nome: 'Alessandro F.', sesso: 'M', provenienza: '3B', dsa: false, pericolosita: 5 },
+                { id: '6', nome: 'Emma Esposito', sesso: 'F', provenienza: '3A', dsa: false, pericolosita: 1 },
+                { id: '7', nome: 'Matteo Romano', sesso: 'M', provenienza: '3C', dsa: false, pericolosita: 3 },
+                { id: '8', nome: 'Aurora Gallo', sesso: 'F', provenienza: '3B', dsa: true, pericolosita: 2 },
+                { id: '9', nome: 'Lorenzo Costa', sesso: 'M', provenienza: '3A', dsa: false, pericolosita: 1 },
+                { id: '10', nome: 'Ginevra F.', sesso: 'F', provenienza: '3C', dsa: false, pericolosita: 4 },
+                { id: '11', nome: 'Leonardo C.', sesso: 'M', provenienza: '3B', dsa: false, pericolosita: 2 },
+                { id: '12', nome: 'Beatrice Ricci', sesso: 'F', provenienza: '3A', dsa: false, pericolosita: 1 },
+            ];
+
+            relazioni = [
+                { type: 'SEPARA', id1: studenti[1].id, id2: studenti[4].id } // Sofia e Alessandro entrambi P5 da separare
+            ];
+
+            righe = 3;
+            colonne = 6;
+            document.getElementById('cfg-righe').value = 3;
+            document.getElementById('cfg-colonne').value = 6;
+
+            resetGriglia();
+            renderStudenti();
+            aggiornaSelectRelazioni();
+            renderRelazioni();
+            generaDisposizioneOttimizzata();
+            showToast("Dati di esempio con livelli pericolosità caricati!");
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = message;
+            toastIcon.className = isError ? "fa-solid fa-triangle-exclamation text-rose-500" : "fa-solid fa-circle-check text-emerald-400";
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
